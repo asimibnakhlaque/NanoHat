@@ -1,0 +1,60 @@
+# Environments & Virtual Envs
+.venv/
+venv/
+env/
+ENV/
+*.env
+.env.local
+.env.*.local
+!.env.example
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Caches & IDEs
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Distribution / Packaging
+build/
+dist/
+*.egg-info/
+*.egg
+
+# Data & Batches (Generated artifacts)
+dataset/raw_batches/*.json
+!dataset/raw_batches/.gitkeep
+dataset/validated/*.json
+!dataset/validated/.gitkeep
+
+# Model Adapters & Checkpoints
+training/adapter_output/
+training/merged_model/
+*.safetensors
+*.bin
+*.gguf
+*.pt
+*.pth
+checkpoint-*/
+wandb/
+
+# Local User Memory & Screenshots
+~/.config/smollm2-fedora-agent/
+screenshot.png
+/tmp/screenshot.png
+
+# Logs & Temporary Files
+*.log
+grounding/*.json

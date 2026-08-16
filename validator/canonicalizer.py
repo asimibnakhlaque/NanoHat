@@ -312,17 +312,37 @@ def _merge_consecutive_assistant_turns(messages: List[Dict[str, str]]) -> List[D
     return merged
 
 
-def canonicalize_conversation(conv_dict: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+def canonicalize_conversation(conv_dict: Any) -> Optional[Dict[str, Any]]:
     """Normalizes tags, repairs JSON syntax, and enforces uniform surface format."""
-    if not isinstance(conv_dict, dict) or "messages" not in conv_dict:
+    if isinstance(conv_dict, list):
+        raw_messages = conv_dict
+    elif isinstance(conv_dict, dict):
+        raw_messages = (
+            conv_dict.get("messages")
+            or conv_dict.get("conversations")
+            or conv_dict.get("conversation")
+            or conv_dict.get("dialog")
+            or conv_dict.get("turns")
+            or []
+        )
+    else:
         return None
 
-    messages = _merge_consecutive_assistant_turns(conv_dict["messages"])
+    if not isinstance(raw_messages, list) or not raw_messages:
+        return None
+
+    messages = _merge_consecutive_assistant_turns(raw_messages)
     cleaned_messages = []
 
-    for msg in messages:
+    for idx, msg in enumerate(messages):
         role = msg.get("role")
         content = msg.get("content", "")
+
+        # Auto-rescue: if a message following a tool call is labeled "system", normalize to "tool"
+        if idx > 0 and role == "system":
+            prev_msg = cleaned_messages[-1] if cleaned_messages else {}
+            if prev_msg.get("role") == "assistant" and "<tool_call>" in prev_msg.get("content", ""):
+                role = "tool"
 
         if role == "assistant":
             content = re.sub(r'<\s*thought\s*>', '<thought>', content)

@@ -40,6 +40,15 @@ def canonicalize_conversation(conv_dict: Dict[str, Any]) -> Optional[Dict[str, A
                 raw_json = match.group(1).strip()
                 try:
                     call_obj = json.loads(raw_json)
+                    
+                    # --- AUTO-RESCUE: Fix LLM null/None quirks ---
+                    args = call_obj.get("arguments", {})
+                    if isinstance(args, dict):
+                        # If the LLM used null or "None" for target, fix it
+                        if args.get("target") in [None, "None", "null"]:
+                            # Fallback to "all" for health checks, or "" for actions
+                            args["target"] = "all" if call_obj.get("name") == "system_health" else ""
+                            
                     canonical_json = json.dumps(call_obj, separators=(',', ':'))
                     content = content[:match.start()] + f"<tool_call>{canonical_json}</tool_call>" + content[match.end():]
                 except Exception:

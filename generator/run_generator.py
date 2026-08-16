@@ -20,6 +20,7 @@ from generator.config import (
     OUTPUT_RAW_DIR,
     GROUNDING_FIXTURES_PATH,
     PHASE_QUOTAS,
+    EXISTING_DATASET_PATH
 )
 from generator.schemas import ALLOWED_TOOLS
 from generator.prompts import (
@@ -28,6 +29,7 @@ from generator.prompts import (
     build_multi_tool_prompt,
     build_edge_case_prompt,
 )
+from validator.dedup import build_existing_fingerprints, deduplicate_batch
 
 # Tracker to guarantee strictly equal representation across all 6 tools in Phase 1
 TOOLS = sorted(list(ALLOWED_TOOLS))
@@ -130,10 +132,16 @@ def run_calibration_probe(client: OpenAI, fixtures: dict):
     print(f"Estimated Cost per Conversation: ${(est_cost / max(total_samples, 1)):.4f} USD")
     print("========================================================\n")
 
-def run_full_pipeline(client: OpenAI, fixtures: dict):
+def run_full_pipeline(client: OpenAI, fixtures: dict, run_id: str = "run2", enable_dedup: bool = True):
     print("\n========================================================")
-    print("🚀 RUNNING FULL CURRICULUM SYNTHETIC GENERATION PIPELINE")
+    print(" RUNNING FULL CURRICULUM SYNTHETIC GENERATION PIPELINE")
     print("========================================================")
+
+    existing_fps = set()
+    if enable_dedup:
+        existing_fps = build_existing_fingerprints(EXISTING_DATASET_PATH)
+
+    total_dupes_removed = 0
     
     # Phase 1: Single-Tool Mastery
     print("\n--- Phase 1: Single-Tool Mastery ---")
@@ -142,33 +150,61 @@ def run_full_pipeline(client: OpenAI, fixtures: dict):
     
     for i in range(total_single_batches):
         tool = get_next_single_tool()
-        batch_label = f"phase1_{tool}_batch{TOOL_BATCH_COUNT[tool]}"
+        batch_label = f"{run_id}_phase1_{tool}_batch{TOOL_BATCH_COUNT[tool]}"
         prompt = build_single_tool_prompt(tool, fixtures)
-        call_deepseek_batch(client, prompt, batch_label)
+        convos, p_tok, c_tok = call_deepseek_batch(client, prompt, batch_label)
+
+        if enable_dedup and convos:
+            convos, dupes = deduplicate_batch(convos, existing_fps)
+            total_dupes_removed += dupes
+            if dupes:
+                print(f" [Dedup] Removed {dupes} duplicated convesations")
+
         time.sleep(1)
         
     # Phase 2: No-Tool Chat
     print("\n--- Phase 2: No-Tool Pure Conversation ---")
     for i in range(PHASE_QUOTAS["no_tool_batches"]):
-        batch_label = f"phase2_notool_batch{i+1}"
+        batch_label = f"{run_id}_phase2_notool_batch{i+1}"
         prompt = build_no_tool_prompt()
-        call_deepseek_batch(client, prompt, batch_label)
+        convos, p_tok, c_tok = call_deepseek_batch(client, prompt, batch_label)
+
+        if enable_dedup and convos:
+            convos, dupes = deduplicate_batch(convos, existing_fps)
+            total_dupes_removed += dupes
+            if dupes:
+                print(f" [Dedup] Removed {dupes} duplicated convesations")
+
         time.sleep(1)
         
     # Phase 3: Multi-Tool Chaining
     print("\n--- Phase 3: Multi-Tool Chaining ---")
     for i in range(PHASE_QUOTAS["multi_tool_batches"]):
-        batch_label = f"phase3_multitool_batch{i+1}"
+        batch_label = f"{run_id}_phase3_multitool_batch{i+1}"
         prompt = build_multi_tool_prompt(fixtures)
-        call_deepseek_batch(client, prompt, batch_label)
+        convos, p_tok, c_tok = call_deepseek_batch(client, prompt, batch_label)
+
+        if enable_dedup and convos:
+            convos, dupes = deduplicate_batch(convos, existing_fps)
+            total_dupes_removed += dupes
+            if dupes:
+                print(f" [Dedup] Removed {dupes} duplicated convesations")
+
         time.sleep(1)
         
     # Phase 4: Edge Cases
     print("\n--- Phase 4: Edge Cases & Recovery ---")
     for i in range(PHASE_QUOTAS["edge_case_batches"]):
-        batch_label = f"phase4_edgecase_batch{i+1}"
+        batch_label = f"{run_id}_phase4_edgecase_batch{i+1}"
         prompt = build_edge_case_prompt(fixtures)
-        call_deepseek_batch(client, prompt, batch_label)
+        convos, p_tok, c_tok = call_deepseek_batch(client, prompt, batch_label)
+
+        if enable_dedup and convos:
+            convos, dupes = deduplicate_batch(convos, existing_fps)
+            total_dupes_removed += dupes
+            if dupes:
+                print(f" [Dedup] Removed {dupes} duplicated convesations")
+
         time.sleep(1)
         
     print("\n✓ Full generation run completed. Raw batches stored in:", OUTPUT_RAW_DIR)
@@ -177,6 +213,8 @@ def main():
     parser = argparse.ArgumentParser(description="Curriculum Synthetic Dataset Generator for SmolLM2 Fedora Agent")
     parser.add_argument("--probe", action="store_true", help="Run a 3-batch calibration probe (15 conversations)")
     parser.add_argument("--api-key", default=DEEPSEEK_API_KEY, help="DeepSeek API Key")
+    parser.add_argument("--run-id", default="run2", help="Run identifier for batch filenames")
+    parser.add_argument("--dedup", action="store_true", help="Enable deduplication against existing dataset")
     args = parser.parse_args()
     
     api_key = args.api_key or os.getenv("DEEPSEEK_API_KEY")

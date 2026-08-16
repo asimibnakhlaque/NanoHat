@@ -58,8 +58,8 @@ def run_validation(raw_dir="dataset/raw_batches", output_file="dataset/validated
     print(f"Rejected: {len(rejected_log)} ({len(rejected_log)/max(total_found, 1)*100:.1f}%)")
     
     if rejected_log:
-        print("\nTop 5 Rejection Reasons:")
-        for r_file, r_idx, r_reason in rejected_log[:5]:
+        print("\nRejection Reasons:")
+        for r_file, r_idx, r_reason in rejected_log:
             print(f"  - [{r_file} #{r_idx}]: {r_reason}")
             
     os.makedirs(os.path.dirname(output_file), exist_ok=True)

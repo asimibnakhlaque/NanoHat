@@ -38,7 +38,7 @@ class FedoraFormatBridge(OpenAIServerModel):
 def build_agent(backend="ollama", model_path="smollm2-360m-fedora-agent"):
     if not SMOLAGENTS_AVAILABLE:
         print("Notice: 'smolagents' is not installed in the current Python environment.")
-        print("To install all dependencies, run: pip install -r training/requirements.txt")
+        print("To install all dependencies, run: pip install -r requirements.txt")
         return None
 
     if backend == "ollama":

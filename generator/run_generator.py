@@ -230,7 +230,7 @@ def main():
     if args.probe:
         run_calibration_probe(client, fixtures)
     else:
-        run_full_pipeline(client, fixtures)
+        run_full_pipeline(client, fixtures, run_id=args.run_id)
 
 if __name__ == "__main__":
     main()

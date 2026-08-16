@@ -5,14 +5,18 @@ Merges run1 and run2 golden datasets into a single unified training file.
 import json
 import os
 
-RUN1_PATH = "dataset/validated/golden_dataset_run1_backup.json"
-RUN2_PATH = "dataset/validated/golden_dataset_run2_backup.json"
+paths = [
+    ("dataset/validated/golden_dataset_run1_backup.json", "Run1"), 
+    ("dataset/validated/golden_dataset_run2_backup.json", "Run2"),
+    ("dataset/validated/golden_dataset_run3_backup.json", "Run3")
+]
+
 OUTPUT_PATH = "dataset/validated/golden_dataset_merged.json"
 
 def merge():
     conversations = []
     
-    for path, label in [(RUN1_PATH, "Run1"), (RUN2_PATH, "Run2")]:
+    for path, label in paths:
         if not os.path.exists(path):
             print(f"  ⚠ {label} file not found at {path}, skipping.")
             continue

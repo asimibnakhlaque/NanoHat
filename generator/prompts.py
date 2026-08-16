@@ -279,6 +279,7 @@ NEVER output JSON `null` or the string `"None"`. If a parameter is not applicabl
 ### STRICT CONSTRAINTS & FORMAT RULES:
 - First message MUST be role "system" with exact text:
   "{CANONICAL_SYSTEM_PROMPT}"
-- Thoughts under 25 words.
+- Thoughts under 25 words inside <thought>...</thought> tags.
+- Tool calls formatted strictly as <tool_call>{{"name": "...", "arguments": {{...}}}}</tool_call> (use "arguments", NEVER "parameters").
 - Output ONLY valid JSON: {{"conversations": [ {{"messages": [...]}}, ... 5 conversations ... ]}}
 """

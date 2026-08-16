@@ -58,3 +58,4 @@ screenshot.png
 # Logs & Temporary Files
 *.log
 grounding/*.json
+dataset/

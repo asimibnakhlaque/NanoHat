@@ -18,22 +18,39 @@ TEMPERATURE = 0.7
 TOP_P = 0.95
 SAMPLES_PER_BATCH = 5
 
-# Budget Guard Settings
-TOTAL_BUDGET_USD = 1.00
-# Estimated cost per batch (5 conversations) in USD
+# Concurrency & Budget Settings
+DEFAULT_MAX_WORKERS = 6
+DEFAULT_BUDGET_USD = 1.50
+TOTAL_BUDGET_USD = DEFAULT_BUDGET_USD
+
+# Token Pricing in USD per Million Tokens (DeepSeek V4)
+ESTIMATED_INPUT_PRICE_PER_M = 0.27
+ESTIMATED_OUTPUT_PRICE_PER_M = 1.10
 ESTIMATED_COST_PER_BATCH_USD = 0.006
 
-# Quotas across Curriculum Phases
-PHASE_QUOTAS = {
+# Targeted Run 4 Batch Quotas (250 batches = 1,250 conversations)
+# Cures under-represented actions while reinforcing multi-tool flows and error recovery
+TARGETED_RUN4_QUOTAS = {
+    "starved_desktop_actions": 60,
+    "starved_network_and_diagnostics": 50,
+    "rich_reminders_and_calculator": 45,
+    "complex_multi_tool_chains": 45,
+    "tool_failure_and_recovery": 30,
+    "negative_pure_chat": 20,
+}
+
+# Classical 4-Phase Curriculum Quotas
+CURRICULUM_PHASE_QUOTAS = {
     "single_tool_batches_per_tool": 8,
     "no_tool_batches": 12,
     "multi_tool_batches": 30,
     "edge_case_batches": 30,
 }
+# Backward compatibility alias
+PHASE_QUOTAS = CURRICULUM_PHASE_QUOTAS
 
+# Output & Grounding Paths
 OUTPUT_RAW_DIR = "dataset/raw_batches"
 OUTPUT_VALIDATED_DIR = "dataset/validated"
 GROUNDING_FIXTURES_PATH = "grounding/real_tool_outputs.json"
-
-# NEW: Path to existing golden dataset for deduplication
 EXISTING_DATASET_PATH = "dataset/validated/golden_dataset_merged.json"

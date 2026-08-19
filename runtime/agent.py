@@ -132,6 +132,62 @@ def _normalize_tool_call(tool_name: str, args: Dict[str, Any]) -> Tuple[str, Dic
     return name, args
 
 
+from generator.schemas import (
+    ALLOWED_HEALTH_TARGETS,
+    ALLOWED_MEMORY_ACTIONS,
+    ALLOWED_SYSTEM_ACTIONS,
+    ALLOWED_TOOLS,
+)
+
+
+ALLOWED_ARGUMENT_KEYS = {
+    "calculator": {"expression"},
+    "web_search": {"query"},
+    "user_memory": {"action", "key", "value"},
+    "reminder": {"task", "time_or_delay"},
+    "system_health": {"target"},
+    "system_action": {"action", "target"},
+}
+
+REQUIRED_ARGUMENT_KEYS = {
+    "calculator": {"expression"},
+    "web_search": {"query"},
+    "user_memory": {"action", "key"},
+    "reminder": {"task", "time_or_delay"},
+    "system_health": {"target"},
+    "system_action": {"action"},
+}
+
+
+def _validate_tool_call(tool_name: str, args: Dict[str, Any]) -> Tuple[bool, str]:
+    """Enforce the canonical runtime contract before any tool executes."""
+    if tool_name not in ALLOWED_TOOLS:
+        return False, f"Unknown tool '{tool_name}'. Use only: {', '.join(sorted(ALLOWED_TOOLS))}."
+    if not isinstance(args, dict):
+        return False, "Tool arguments must be a JSON object under the 'arguments' key."
+
+    keys = set(args)
+    if keys - ALLOWED_ARGUMENT_KEYS.get(tool_name, set()):
+        unexpected = ", ".join(sorted(keys - ALLOWED_ARGUMENT_KEYS[tool_name]))
+        return False, f"Unexpected argument key(s) for {tool_name}: {unexpected}."
+    missing = REQUIRED_ARGUMENT_KEYS.get(tool_name, set()) - keys
+    if missing:
+        return False, f"Missing required argument(s) for {tool_name}: {', '.join(sorted(missing))}."
+    if any(value is None or value == "None" for value in args.values()):
+        return False, "Arguments cannot contain null or 'None' values."
+    if any(not isinstance(value, str) for value in args.values()):
+        return False, "All tool arguments must be strings."
+
+    if tool_name == "user_memory" and args["action"] not in ALLOWED_MEMORY_ACTIONS:
+        return False, f"Invalid memory action '{args['action']}'."
+    if tool_name == "system_health" and args["target"] not in ALLOWED_HEALTH_TARGETS:
+        return False, f"Invalid health target '{args['target']}'."
+    if tool_name == "system_action" and args["action"] not in ALLOWED_SYSTEM_ACTIONS:
+        return False, f"Invalid system action '{args['action']}'."
+    return True, "OK"
+
+
+
 def _execute_tool(tool_name: str, args: Dict[str, Any]) -> str:
     """Invokes the appropriate tool function with parameter mapping."""
     if tool_name not in TOOL_REGISTRY:

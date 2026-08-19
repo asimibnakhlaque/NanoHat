@@ -14,6 +14,10 @@ import datetime
 import threading
 import subprocess
 
+# Point rustls and OpenSSL directly to the Fedora public CA bundle
+os.environ["SSL_CERT_FILE"] = "/etc/pki/tls/certs/ca-bundle.crt"
+os.environ["REQUESTS_CA_BUNDLE"] = "/etc/pki/tls/certs/ca-bundle.crt"
+
 # Flexible import for smolagents @tool decorator (or fallback dummy decorator for testing)
 try:
     from smolagents import tool
@@ -57,9 +61,8 @@ def web_search(query: str) -> str:
         results = list(DDGS().text(query, max_results=3))
         if results:
             return "\n".join([f"- {r['title']}: {r['body']}" for r in results])
-    except Exception:
-        pass
-    return f"Search result for '{query}': Fedora Linux 44 features GNOME 48, default Wayland enhancements, and Linux Kernel 6.14."
+    except Exception as e:
+        return str(e)
 
 # ---------------------------------------------------------------------------
 # 3. USER MEMORY TOOL
@@ -197,6 +200,12 @@ def _toggle_bluetooth() -> str:
         subprocess.run(["bluetoothctl", "power", "on"], shell=False, capture_output=True, check=False)
         return "Bluetooth enabled."
 
+def _toggle_wifi() -> str:
+    subprocess.run(["nmcli", "radio", "wifi", "toggle"], shell=False, capture_output=True, check=False)
+    status_res = subprocess.run(["nmcli", "radio", "wifi"], shell=False, capture_output=True, text=True, check=False)
+    state = status_res.stdout.strip()
+    return f"WiFi is now {state}."
+
 @tool
 def system_action(action: str, target: str = "") -> str:
     """Safely executes predefined OS desktop actions, launches apps, or queries system state.
@@ -230,7 +239,7 @@ def system_action(action: str, target: str = "") -> str:
         return _safe_restart_service(target)
     elif action == "toggle_wifi":
         subprocess.run(["nmcli", "radio", "wifi", "toggle"], shell=False, capture_output=True, check=False)
-        return "WiFi state toggled."
+        return _toggle_wifi()
     elif action == "toggle_bluetooth":
         return _toggle_bluetooth()
     elif action == "empty_trash":

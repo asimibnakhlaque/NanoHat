@@ -33,9 +33,9 @@ smollm2-fedora-agent/
 │   ├── validated/                   # Clean canonicalized dataset (500–800 samples)
 │   └── train_eval_split.py          # Split generator (90% train / 10% eval)
 ├── training/
-│   ├── dataset_collator.py          # Single-pass offset-mapped loss masking
-│   ├── train_qlora.py               # TRL SFTTrainer / Unsloth QLoRA script for SmolLM2-360M
-│   └── merge_adapter.py             # LoRA weights merger for local inference / GGUF export
+│   ├── dataset_collator.py          # Dataset loading & ChatML template formatting
+│   ├── train_unsloth.py             # Ultra-fast 16-bit LoRA fine-tuning & response loss masking via Unsloth
+│   └── merge_adapter.py             # Standalone 16-bit merger & direct GGUF (F16/Q4_K_M) export
 │   
 ├── runtime/
 │   ├── tools.py                     # 6 consolidated @tool definitions with confirmation gates
@@ -80,9 +80,9 @@ python -m validator.validate_dataset
 python dataset/train_eval_split.py
 ```
 
-### 5. QLoRA Fine-Tuning
+### 5. Fast Unsloth Fine-Tuning & Export
 ```bash
-python -m training.train_qlora --train-data dataset/validated/train.json --eval-data dataset/validated/eval.json --epochs 3
+python -m training.train_unsloth --train-data dataset/validated/train.json --eval-data dataset/validated/eval.json --epochs 5
 ```
 
 ### 6. Interactive Local Agent (smolagents)

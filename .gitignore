@@ -41,6 +41,7 @@ dataset/validated/*.json
 
 # Model Adapters & Checkpoints
 training/adapter_output/
+training/adapter_unsloth/
 training/merged_model/
 *.safetensors
 *.bin

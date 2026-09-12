@@ -3,7 +3,8 @@
 A lightweight, autonomous AI agent powered by **SmolLM2-360M-Instruct** designed specifically for **Fedora Linux**, orchestrated via the **Hugging Face `smolagents`** framework.
 
 ## Key Features
-- **6 Consolidated Core Tools**: `calculator`, `web_search`, `user_memory`, `reminder`, `system_health`, and `system_action`.
+- **6 Consolidated Core Tools**: `calculator`, `web_search`, `user_memory`, `scheduler`, `system_health`, and `system_action`.
+- **Fail-Closed Safety**: destructive actions require interactive confirmation; headless sessions refuse by default (`NANOHAT_AUTO_APPROVE_DESTRUCTIVE=1` overrides for trusted daemons). Persistent tasks with absolute due times survive restarts.
 - **Zero Shell Interpolation Security**: All system executions run through `subprocess.run(shell=False)` with argument arrays and process sanitization.
 - **Hugging Face `smolagents` Harness**: Minimal prompt overhead (~100 tokens), preserving context for small language models.
 - **FedoraFormatBridge**: Intercepts custom `<thought>` and `<tool_call>` tags from fine-tuned weights and bridges them to the `smolagents` tool-calling engine.
@@ -49,14 +50,28 @@ smollm2-fedora-agent/
 
 ## Quickstart Guide
 
-### 1. Environment Installation
+### 1. One-Line Installer (Recommended)
 ```bash
-python3 -m venv .venv 
-source .venv/bin/activate
-pip install -r requirements.txt
+./install.sh
+```
+Or install directly via pip:
+```bash
+pip install -e .
 ```
 
-### 2. Capture Real Fedora CLI Outputs
+### 2. Run Single-Shot OS Commands
+Execute any query directly from your terminal:
+```bash
+nanohat "What is 15 percent of 800?"
+nanohat "What is my current RAM usage?"
+nanohat "Check battery status"
+nanohat "Search for Fedora 41 release schedule"
+```
+
+For interactive multi-turn chat:
+```bash
+nanohat --interactive
+```
 ```bash
 python grounding/capture_tool_outputs.py
 ```

@@ -1,12 +1,13 @@
-FROM NanoHat-360m/merged_model.F16.gguf
+FROM ./NanoHat-360m/nanohat2.1.F16.gguf
 
 PARAMETER stop "<|im_end|>"
 PARAMETER stop "<|endoftext|>"
-PARAMETER temperature 0.1
-PARAMETER repeat_penalty 1.1
-PARAMETER repeat_last_n 64
 
-TEMPLATE """{{- range .Messages }}<|im_start|>{{ .Role }}
+
+TEMPLATE """{{- if .System }}<|im_start|>system
+{{ .System }}<|im_end|>
+{{- end }}
+{{- range .Messages }}<|im_start|>{{ .Role }}
 {{ .Content }}<|im_end|>
 {{ end }}<|im_start|>assistant
 """

@@ -1,0 +1,45 @@
+{
+  "conversations": 300,
+  "format_compliance_pct": 100.0,
+  "tool_choice_acc_pct": 100.0,
+  "arg_acc_pct": 100.0,
+  "id_threading_acc_pct": 100.0,
+  "temporal_acc_pct": 100.0,
+  "grounding_rate_pct": 98.6,
+  "refusal_precision_pct": 80.0,
+  "raw": {
+    "format_ok": 873,
+    "format_total": 873,
+    "call_total": 356,
+    "tool_choice_ok": 356,
+    "args_ok": 356,
+    "ground_total": 517,
+    "ground_ok": 510,
+    "temporal_total": 58,
+    "temporal_ok": 58,
+    "refusal_total": 10,
+    "refusal_ok": 8,
+    "thread_total": 22,
+    "thread_ok": 22
+  },
+  "sample_misses": [
+    {
+      "conv": 62,
+      "turns": [
+        {
+          "i": 1,
+          "issue": "tool_emitted_on_refusal"
+        }
+      ]
+    },
+    {
+      "conv": 234,
+      "turns": [
+        {
+          "i": 1,
+          "issue": "tool_emitted_on_refusal"
+        }
+      ]
+    }
+  ]
+}

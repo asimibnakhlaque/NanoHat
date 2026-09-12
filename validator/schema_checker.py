@@ -12,6 +12,9 @@ from generator.schemas import (
     ALLOWED_HEALTH_TARGETS,
     ALLOWED_SYSTEM_ACTIONS,
     ALLOWED_MEMORY_ACTIONS,
+    ALLOWED_SCHEDULER_ACTIONS,
+    ALLOWED_SCHEDULER_RANGES,
+    ALLOWED_SCHEDULER_STATUSES,
 )
 
 MAX_THOUGHT_WORDS = 25
@@ -19,44 +22,76 @@ MAX_THOUGHT_WORDS = 25
 def validate_tool_call(call_dict: Dict[str, Any]) -> Tuple[bool, str]:
     if not isinstance(call_dict, dict):
         return False, "Tool call is not a JSON object"
-        
+
     name = call_dict.get("name")
     if name not in ALLOWED_TOOLS:
         return False, f"Hallucinated tool name: '{name}'"
-        
+
     args = call_dict.get("arguments", {})
     if not isinstance(args, dict):
         return False, f"Tool '{name}' arguments must be a dictionary"
-        
+
     if name == "calculator":
-        if "expression" not in args or not isinstance(args["expression"], str):
-            return False, "calculator missing required string 'expression'"
-            
+        if "expression" not in args or not isinstance(args["expression"], str) or not args["expression"].strip():
+            return False, "calculator missing required non-empty string 'expression'"
+
     elif name == "web_search":
-        if "query" not in args or not isinstance(args["query"], str):
-            return False, "web_search missing required string 'query'"
-            
+        if "query" not in args or not isinstance(args["query"], str) or not args["query"].strip():
+            return False, "web_search missing required non-empty string 'query'"
+
     elif name == "user_memory":
         action = args.get("action")
         if action not in ALLOWED_MEMORY_ACTIONS:
             return False, f"Invalid user_memory action '{action}'"
-        if "key" not in args or not isinstance(args["key"], str):
-            return False, "user_memory missing required string 'key'"
-            
-    elif name == "reminder":
-        if "task" not in args or "time_or_delay" not in args:
-            return False, "reminder missing required 'task' or 'time_or_delay'"
-            
+        if action == "list":
+            pass  # key intentionally omitted for enumeration
+        elif "key" not in args or not isinstance(args["key"], str) or not args["key"].strip():
+            return False, f"user_memory {action} requires a non-empty 'key'"
+        if action == "store" and (args.get("value") is None or not str(args.get("value", "")).strip()):
+            return False, "user_memory store requires a non-empty 'value'"
+        if action in ("get", "delete", "list") and str(args.get("value", "") or "") != "":
+            # value must be empty/omitted unless storing
+            if action != "store" and str(args.get("value", "")) != "":
+                return False, f"user_memory {action} must leave 'value' empty"
+
+    elif name == "scheduler":
+        sched_action = args.get("action")
+        if sched_action not in ALLOWED_SCHEDULER_ACTIONS:
+            return False, f"Invalid scheduler action '{sched_action}'"
+        if sched_action == "set":
+            if not str(args.get("task", "")).strip():
+                return False, "scheduler set requires non-empty 'task'"
+            if not str(args.get("due", "")).strip():
+                return False, "scheduler set requires non-empty 'due'"
+        elif sched_action in ("update", "delete"):
+            if not str(args.get("id", "")).strip():
+                return False, f"scheduler {sched_action} requires non-empty 'id'"
+        elif sched_action == "list":
+            rng = args.get("range", "")
+            if rng and rng not in ALLOWED_SCHEDULER_RANGES:
+                return False, f"Invalid scheduler range '{rng}'"
+            stat = args.get("status", "")
+            if stat and stat not in ALLOWED_SCHEDULER_STATUSES:
+                return False, f"Invalid scheduler status filter '{stat}'"
+        # update: optional task/due/status change fields
+        upd_status = args.get("status", "")
+        if sched_action == "update" and upd_status and \
+                upd_status not in ("pending", "done", "cancelled"):
+            return False, f"Invalid scheduler target status '{upd_status}'"
+
     elif name == "system_health":
         target = args.get("target")
         if target not in ALLOWED_HEALTH_TARGETS:
             return False, f"Invalid system_health target '{target}'. Allowed: {ALLOWED_HEALTH_TARGETS}"
-            
+
     elif name == "system_action":
         action = args.get("action")
         if action not in ALLOWED_SYSTEM_ACTIONS:
             return False, f"Invalid system_action keyword '{action}'. Allowed: {ALLOWED_SYSTEM_ACTIONS}"
-            
+        if action in {"kill_process", "restart_service", "launch_app"} and \
+                not str(args.get("target", "")).strip():
+            return False, f"system_action {action} requires a non-empty 'target'"
+
     return True, "OK"
 
 def validate_conversation(conv_dict: Dict[str, Any]) -> Tuple[bool, str]:

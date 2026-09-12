@@ -1,13 +1,13 @@
-# SmolLM2-360M Fedora Agent
+# NanoHat: Sub-1B Fedora Linux OS Agent
 
-A lightweight, autonomous AI agent powered by **SmolLM2-360M-Instruct** designed specifically for **Fedora Linux**, orchestrated via the **Hugging Face `smolagents`** framework.
+A lightweight, autonomous AI agent powered by **SmolLM2-360M-Instruct** designed specifically for **Fedora Linux**, powered by a high-performance native CLI runtime.
 
 ## Key Features
 - **6 Consolidated Core Tools**: `calculator`, `web_search`, `user_memory`, `scheduler`, `system_health`, and `system_action`.
 - **Fail-Closed Safety**: destructive actions require interactive confirmation; headless sessions refuse by default (`NANOHAT_AUTO_APPROVE_DESTRUCTIVE=1` overrides for trusted daemons). Persistent tasks with absolute due times survive restarts.
 - **Zero Shell Interpolation Security**: All system executions run through `subprocess.run(shell=False)` with argument arrays and process sanitization.
-- **Hugging Face `smolagents` Harness**: Minimal prompt overhead (~100 tokens), preserving context for small language models.
-- **FedoraFormatBridge**: Intercepts custom `<thought>` and `<tool_call>` tags from fine-tuned weights and bridges them to the `smolagents` tool-calling engine.
+- **Zero-Overhead Native Harness**: Minimal prompt overhead (~100 tokens), preserving context for sub-1B language models.
+- **FedoraFormatBridge**: Intercepts custom `<thought>` and `<tool_call>` tags from fine-tuned weights and bridges them to the native tool-calling engine.
 - **Curriculum Synthetic Data Generator**: 4 curriculum phases with balanced tool tracking, ground-truth CLI fixtures, and canonical syntax validation.
 - **Loss Masking Collator**: Full-conversation single-pass tokenization with character offset mapping (labels = -100 for non-assistant tokens).
 
@@ -16,7 +16,7 @@ A lightweight, autonomous AI agent powered by **SmolLM2-360M-Instruct** designed
 ## Directory Structure
 
 ```
-smollm2-fedora-agent/
+~/nanohat/
 ├── grounding/
 │   ├── capture_tool_outputs.py      # Captures live Fedora CLI fixtures
 │   └── real_tool_outputs.json       # Ground-truth CLI output snippets
@@ -40,7 +40,7 @@ smollm2-fedora-agent/
 │   
 ├── runtime/
 │   ├── tools.py                     # 6 consolidated @tool definitions with confirmation gates
-│   ├── agent.py                     # smolagents.ToolCallingAgent with FedoraFormatBridge
+│   ├── agent.py                     # Native OS agent runtime with FedoraFormatBridge
 │   └── test_agent.py                # Local integration & security test suite
 ├── README.md
 └── requirements.txt             # Python dependencies
@@ -72,9 +72,6 @@ For interactive multi-turn chat:
 ```bash
 nanohat --interactive
 ```
-```bash
-python grounding/capture_tool_outputs.py
-```
 
 ### 3. Generate Synthetic Training Data (DeepSeek V4 Pro)
 ```bash
@@ -100,10 +97,10 @@ python dataset/train_eval_split.py
 python -m training.train_unsloth --train-data dataset/validated/train.json --eval-data dataset/validated/eval.json --epochs 5
 ```
 
-### 6. Interactive Local Agent (smolagents)
+### 6. Interactive Local Agent
 ```bash
 # Run using local Ollama model
-python -m runtime.agent --backend ollama --model smollm2-360m-fedora-agent
+python -m runtime.agent --backend ollama --model nanohat2.1:360m
 
 # Or load directly into PyTorch in-memory weights
 python -m runtime.agent --backend transformers --model training/merged_model
